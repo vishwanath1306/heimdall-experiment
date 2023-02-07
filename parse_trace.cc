@@ -124,14 +124,36 @@ int read_length_prefixed(std::fstream &f, char* &dst){
 
     if (DEBUG)
     {
-        std::cout<<"Buffer contents are: "<< dst << std::endl;
+        std::cout<<"Whatever is read contents are: "<< dst << std::endl;
     }
     
     return size;
 }
-void read_next_buffer(std::fstream &f){
+
+RawHindsightBuffer* read_next_buffer(std::fstream &f){
     char* agentbuf;
-    int value = read_length_prefixed(f, agentbuf);
+    int agentsize = read_length_prefixed(f, agentbuf);
+    if (agentsize == 0){
+        return nullptr;
+    }
+
+    std::string agent = std::string(agentbuf, agentsize);
+    free(agentbuf);
+
+    char* buf;
+    int bufsize = read_length_prefixed(f, buf);
+    if (bufsize == 0){
+        return nullptr;
+    }
+    if (bufsize < 32){
+        if(WARN){
+            std::cout <<"WARNING: INVALID BUFFER ENCOUNTERED WITH SIZE: "<< bufsize << std::endl;
+        }
+        free(buf);
+        return nullptr;
+    }
+
+    return new RawHindsightBuffer(agent, buf, bufsize);
 }
 
 void read_buffers(std::string filename){
@@ -146,7 +168,9 @@ void read_buffers(std::string filename){
     }
     while (dataset_fd.peek() != EOF)
     {
-        read_next_buffer(dataset_fd);
+        RawHindsightBuffer* b = read_next_buffer(dataset_fd);
+        std::string buf_string = b->str();
+        std::cout<<"Buffer string --> "<< buf_string << std::endl;
     }
 
 }
