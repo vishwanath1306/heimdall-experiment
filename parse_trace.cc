@@ -72,8 +72,67 @@ class RawHindsightBuffer {
     public: 
         std::string agent; 
         TraceHeader* header;
+        char* buf; 
+        size_t size; 
+        RawHindsightBuffer* next; 
+        RawHindsightBuffer* prev;
+
+        RawHindsightBuffer(std::string &agent, char* buf, size_t size)
+        : agent(agent), buf(buf), next(nullptr), prev(nullptr), header((TraceHeader*) buf){}
+
+        ~RawHindsightBuffer() {
+            if(buf != nullptr){
+                free(buf);
+            }
+        }
+
+        std::string str(){
+            std::stringstream s;
+            s << "Buffer[";
+            s << "Agent=" << agent;
+            s << ", TraceID=" << header->trace_id;
+            s << ", N=" << header->buffer_number;
+            s << ", Size="<< size;
+            s << "]";
+
+            return s.str();
+        }
 
 };
+
+int read_length_prefixed(std::fstream &f, char* &dst){
+    char szbuf[4];
+    if(!f.read(szbuf, 4)){
+        return 0;
+    }
+    int size = *((int*) &szbuf);
+    if(DEBUG){
+        std::cout<<"The size of agent buffer is "<<size<<std::endl;
+    }
+
+    if (size < 0 || size > (1024 * 1024 * 100) ){
+        std::cout<<"Likely invalid size " << size << " read" << std::endl;
+        return 0;
+    }
+
+    dst = (char*) malloc(size);
+    if (!f.read(dst, size)){
+        free(dst);
+        dst = nullptr;
+        return 0;
+    }
+
+    if (DEBUG)
+    {
+        std::cout<<"Buffer contents are: "<< dst << std::endl;
+    }
+    
+    return size;
+}
+void read_next_buffer(std::fstream &f){
+    char* agentbuf;
+    int value = read_length_prefixed(f, agentbuf);
+}
 
 void read_buffers(std::string filename){
     std::fstream dataset_fd(filename, std::ios_base::in);
@@ -85,7 +144,10 @@ void read_buffers(std::string filename){
     if(DEBUG){
         std::cout << filename << " has length " << length << std::endl;
     }
-
+    while (dataset_fd.peek() != EOF)
+    {
+        read_next_buffer(dataset_fd);
+    }
 
 }
 
