@@ -1,0 +1,15 @@
+[package]
+name = "heimdall_jaeger_parse"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "heimdall_jaeger_parse"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.18.0", features = ["extension-module"] }
+base_storage = {git = "https://github.com/vishwanath1306/trace-graph-store", rev = "d26e337ffe8c7da642c104d87ee374f8ec148b83" }
+postgres = "0.19.4"
+
